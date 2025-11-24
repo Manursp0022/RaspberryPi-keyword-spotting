@@ -2,6 +2,7 @@ import argparse
 import redis
 import time
 from datetime import datetime
+import threading
 import adafruit_dht
 import uuid
 from board import D4
@@ -58,6 +59,7 @@ class SmartHygrometer:
     def recognize_command(self):
         with self.buffer_lock:
             local_buffer = self.audio_buffer.copy()
+
         #conversion, normalization and downsampling
         waveform = local_buffer.astype(np.float32) / 32768.0
         waveform = waveform[np.newaxis, :]
@@ -108,9 +110,6 @@ class SmartHygrometer:
                 elif 'stop' in cmd:
                     self.data_collection_enabled = False
                     print('[VOICE] Data collection DISABLED')
-                #debug
-                else:
-                    print(f'[VOICE] Command not recognized: "{cmd}"')
 
                 cur_time = time.time()
                 if self.data_collection_enabled and cur_time - self.last_data_time >= 5:
