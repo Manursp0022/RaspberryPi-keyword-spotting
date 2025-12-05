@@ -14,14 +14,11 @@ Popen(
 
 x_test = np.random.normal(size=(1, 1, 16000)).astype(np.float32)
 
-# Change the Group ID
-GROUP_ID = 0
-
-#frontend_file = f'Group{GROUP_ID}_frontend.onnx'
-#model_file = f'Group{GROUP_ID}_model.onnx'
+# Change the model name
 MODEL_NAME = '1764959371_3_98_5%'
-frontend_file = f'model/{MODEL_NAME}_frontend.onnx'
-model_file = f'model/{MODEL_NAME}_model.onnx'
+
+frontend_file = f'{MODEL_NAME}_frontend.onnx'
+model_file = f'{MODEL_NAME}_model.onnx'
 
 sess_opt = ort.SessionOptions()
 sess_opt.intra_op_num_threads = 1
@@ -60,14 +57,11 @@ def print_stats(profile_file):
     )
     stats = stats.sort_values('name')
 
-    return stats['median'].iloc[-1] / 1000
+    print(stats)
 
 
-frontend_latency = print_stats(frontend_profile)
-model_latency = print_stats(model_profile)
-total_latency = frontend_latency + model_latency
-
-
-print(f'Feature Extraction Latency: {frontend_latency:.1f} ms')
-print(f'Model Latency: {model_latency:.1f} ms')
-print(f'Total Latency: {total_latency:.1f} ms')
+print('Frontend stats:')
+print_stats(frontend_profile)
+print()
+print('Model stats:')
+print_stats(model_profile)

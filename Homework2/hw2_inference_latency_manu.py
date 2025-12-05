@@ -12,16 +12,19 @@ Popen(
     shell=True,
 ).wait()
 
-x_test = np.random.normal(size=(1, 1, 16000)).astype(np.float32)
-
+x_test = np.random.normal(size=(1, 16000)).astype(np.float32)
 # Change the Group ID
-GROUP_ID = 0
+GROUP_ID = 2
 
-#frontend_file = f'Group{GROUP_ID}_frontend.onnx'
-#model_file = f'Group{GROUP_ID}_model.onnx'
-MODEL_NAME = '1764959371_3_98_5%'
-frontend_file = f'model/{MODEL_NAME}_frontend.onnx'
-model_file = f'model/{MODEL_NAME}_model.onnx'
+#modelli manu
+frontend_file = f'./model/Group{GROUP_ID}_frontend.onnx'
+model_file = f'./model/Group{GROUP_ID}_model_INT8.onnx'
+
+#modelli pasquale
+#MODEL_NAME = '1764959371_3_98_5%'
+#frontend_file = f'model/{MODEL_NAME}_frontend.onnx'
+#model_file = f'model/{MODEL_NAME}_model.onnx'
+
 
 sess_opt = ort.SessionOptions()
 sess_opt.intra_op_num_threads = 1
@@ -34,9 +37,13 @@ ort_frontend = ort.InferenceSession(frontend_file, sess_options=sess_opt)
 sleep(60)
 ort_model = ort.InferenceSession(model_file, sess_options=sess_opt)
 
+frontend_input_name = ort_frontend.get_inputs()[0].name
+model_input_name = ort_model.get_inputs()[0].name
+
 tot_latencies = []
 for i in range(100):
     features = ort_frontend.run(None, {'input': x_test})[0]
+    features = np.expand_dims(features, 1)
     outputs = ort_model.run(None, {'input': features})[0]
     sleep(0.1)
 
@@ -71,3 +78,8 @@ total_latency = frontend_latency + model_latency
 print(f'Feature Extraction Latency: {frontend_latency:.1f} ms')
 print(f'Model Latency: {model_latency:.1f} ms')
 print(f'Total Latency: {total_latency:.1f} ms')
+
+if total_latency < 5.0:
+    print("LATENCY PASSED (< 5ms)")
+else:
+    print("LATENCY HIGH (> 5ms)")
