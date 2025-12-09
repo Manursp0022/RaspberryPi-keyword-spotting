@@ -19,9 +19,9 @@ GROUP_ID = 0
 
 #frontend_file = f'Group{GROUP_ID}_frontend.onnx'
 #model_file = f'Group{GROUP_ID}_model.onnx'
-MODEL_NAME = '1764959371_3_98_5%'
+MODEL_NAME = 'mobilenet_96'
 frontend_file = f'model/{MODEL_NAME}_frontend.onnx'
-model_file = f'model/{MODEL_NAME}_model.onnx'
+model_file = f'model/{MODEL_NAME}_model_INT8.onnx'
 
 sess_opt = ort.SessionOptions()
 sess_opt.intra_op_num_threads = 1

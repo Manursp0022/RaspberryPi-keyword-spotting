@@ -28,12 +28,9 @@ class SmartHygrometer:
         print('Redis Connected:', self.redis_client.ping())
 
         #custom model loading
-        #model_name = 'openai/whisper-tiny.en'
-        #self.processor = WhisperProcessor.from_pretrained(model_name)
-        #self.model = WhisperForConditionalGeneration.from_pretrained(model_name)
-        MODEL_NAME = '1764959371_3_98_5%'
+        MODEL_NAME = 'mobilenet_96'
         frontend_file = f'model/{MODEL_NAME}_frontend.onnx'
-        model_file = f'model/{MODEL_NAME}_model.onnx'
+        model_file = f'model/{MODEL_NAME}_model_INT8.onnx'
 
         sess_opt = ort.SessionOptions()
         sess_opt.intra_op_num_threads = 1
@@ -78,30 +75,16 @@ class SmartHygrometer:
             torch.tensor(waveform), self.SAMPLING_RATE, 16000
         ).squeeze()
 
-
-        #input_features = self.processor(
-        #    waveform16k, sampling_rate=16000, return_tensors="pt"
-        #).input_features
-        #predicted_ids = self.model.generate(input_features)
-        #transcription = self.processor.batch_decode(
-        #    predicted_ids, skip_special_tokens=True
-        #)[0]
-        #cmd = "".join(c for c in transcription if c.isalnum())
-
         inputs = waveform16k.numpy()
-        #inputs = np.expand_dims(inputs, 0)
         inputs = inputs[np.newaxis, np.newaxis, :]
         features = self.ort_frontend.run(None, {'input': inputs})[0]
         outputs = self.ort_model.run(None,  {'input': features})[0]
         scores = torch.nn.Softmax(dim=-1)(torch.tensor(outputs))[0]
 
-        
+        #predict class i if acc>99.9%
         for i, s in enumerate(scores):
-            #print("class:",i,"score:",s)
             if s>0.999:
-                #print("Predicted command index:", s)
                 return i
-        #prediction = np.argmax(outputs, axis=-1).item()
         return -1
 
     def collect_and_send_data(self):
@@ -115,8 +98,8 @@ class SmartHygrometer:
             timestamp_ms = int(timestamp * 1000)
             self.redis_client.ts().add('temp_timeseries', timestamp_ms, temperature)
             self.redis_client.ts().add('hum_timeseries', timestamp_ms, humidity)
-        except:
-            print(f'{formatted_datetime} - sensor failure')
+        except RuntimeError as e:
+            print(f'{formatted_datetime} - {e} - sensor failure')
             self.dht_device.exit()
             self.dht_device = adafruit_dht.DHT11(D4)
 
@@ -130,7 +113,7 @@ class SmartHygrometer:
                             callback=self.audio_callback):
             while True:
                 time.sleep(self.WINDOW_SEC)
-                print("[VOICE] Begin audio recording...")
+                #print("[VOICE] Begin audio recording...")
                 pred = self.recognize_command()
                 if pred==1:
                     self.data_collection_enabled = True
